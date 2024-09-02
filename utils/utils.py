@@ -11,6 +11,7 @@ __all__ = ['Accumulator', 'accuracy_1d', 'evaluate_accuracy_1d', 'accuracy_2d', 
            'rmse_loss_nd', 'log_rmse_loss_nd', 'softmax_rmse_loss_nd', 'evaluate_rmse_loss_nd',
            'evaluate_log_rmse_loss_nd', 'evaluate_softmax_rmse_loss_nd']
 logger = logging.getLogger(__name__)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class Accumulator:
@@ -118,8 +119,8 @@ def evaluate_accuracy_1d(net: nn.Module, test: data.DataLoader) -> float:
     """ Compute the accuracy for a model on a dataset. The label must be the last column of DataLoader. """
     metric = Accumulator(2)  # No. of correct predictions, no. of predictions
     with torch.no_grad():
-        for *X, y in test:  # unpack for the first n inputs and the last input
-            metric.add(accuracy_1d(net(*X), y), y.shape[0])
+        for X, y in test:  # unpack for the first n inputs and the last input
+            metric.add(accuracy_1d(net(X.to(device)), y.to(device)), y.shape[0])
     return metric[0] / metric[1]
 
 
@@ -145,8 +146,8 @@ def evaluate_accuracy_2d(net: nn.Module, test: data.DataLoader) -> float:
     """ Compute the accuracy for a model on a dataset. The label must be the last column of DataLoader. """
     metric = Accumulator(2)  # No. of correct predictions, no. of predictions
     with torch.no_grad():
-        for *X, y in test:  # unpack for the first n inputs and the last input
-            metric.add(accuracy_2d(net(*X), y), y.numel())
+        for X, y in test:  # unpack for the first n inputs and the last input
+            metric.add(accuracy_2d(net(X.to(device)), y.to(device)), y.numel())
     return metric[0] / metric[1]
 
 
@@ -172,8 +173,8 @@ def evaluate_regression_nd(net: nn.Module, test: data.DataLoader, func: Callable
     """ Compute the loss for a model on a dataset. """
     metric = Accumulator(2)
     with torch.no_grad():
-        for *X, y in test:
-            metric.add(func(net(*X), y), 1)
+        for X, y in test:
+            metric.add(func(net(X.to(device)), y.to(device)), 1)
     return metric[0] / metric[1]
 
 
@@ -191,8 +192,8 @@ def evaluate_softmax_rmse_loss_nd(net: nn.Module, test: data.DataLoader):
     """ Compute the softmax RMSE for a model on a dataset. """
     metric = Accumulator(2)
     with torch.no_grad():
-        for *X, y in test:
-            metric.add(rmse_loss_nd(F.softmax(net(*X), dim=1), y), 1)
+        for X, y in test:
+            metric.add(rmse_loss_nd(F.softmax(net(X.to(device)), dim=1), y.to(device)), 1)
     return metric[0] / metric[1]
 
 

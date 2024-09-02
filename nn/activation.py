@@ -3,6 +3,7 @@ from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 import d2l.nn.functional as d2l
+from typing import Optional
 
 __all__ = ['ReLU', 'Softmax', 'LogSoftmax', 'Sigmoid']
 
@@ -20,7 +21,7 @@ class ReLU(nn.Module):
 
 
 class Softmax(nn.Module):
-    def __init__(self, dim: int = None, fast: bool = False):
+    def __init__(self, dim: Optional[int] = None, fast: bool = False):
         """ Applies the Softmax function. See :class:`torch.nn.Softmax` for more information. """
         super().__init__()
         self.dim = dim
@@ -36,7 +37,7 @@ class Softmax(nn.Module):
 
 
 class LogSoftmax(nn.Module):
-    def __init__(self, dim: int = None, fast: bool = False):
+    def __init__(self, dim: Optional[int] = None, fast: bool = False):
         """ Applies the log_softmax function. See :class:`torch.nn.LogSoftmax` for more information. """
         super().__init__()
         self.dim = dim
@@ -61,15 +62,3 @@ class Sigmoid(nn.Module):
         if self.fast:
             return F.sigmoid(X)
         return d2l.sigmoid(X)
-
-
-class Tanh(nn.Module):
-    """ Applies the hyperbolic tangent function. See :class:`torch.nn.Tanh` for more information. """
-    def __init__(self, fast: bool = False):
-        super().__init__()
-        self.fast = fast
-
-    def forward(self, X: Tensor) -> Tensor:
-        if self.fast:
-            return F.tanh(X)
-        return d2l.tanh(X)

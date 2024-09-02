@@ -4,7 +4,7 @@ from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 import d2l.nn.functional as d2l
-from torch.nn.modules.conv import _ConvNd  # noqa
+from torch.nn.modules.conv import _ConvNd
 from typing import Any, Iterable
 
 __all__ = ['Conv2d']

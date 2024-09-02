@@ -10,5 +10,4 @@ def linear(X: Tensor, weight: Tensor, bias: Optional[Tensor] = None) -> Tensor:
     if bias is None:
         return torch.matmul(X, weight.T)
     else:
-        # it is equivalent to torch.matmul(X, weight.T) + bias, but faster
         return torch.addmm(bias, X, weight.T)
