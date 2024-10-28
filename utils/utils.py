@@ -5,11 +5,14 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.utils.data as data
-from typing import Callable
+from typing import List, Optional, Callable
 
-__all__ = ['Accumulator', 'accuracy_1d', 'evaluate_accuracy_1d', 'accuracy_2d', 'evaluate_accuracy_2d',
-           'rmse_loss_nd', 'log_rmse_loss_nd', 'softmax_rmse_loss_nd', 'evaluate_rmse_loss_nd',
-           'evaluate_log_rmse_loss_nd', 'evaluate_softmax_rmse_loss_nd']
+__all__ = [
+    'Accumulator', 'EarlyStopping',
+    'accuracy_1d', 'evaluate_accuracy_1d', 'accuracy_2d', 'evaluate_accuracy_2d',
+    'rmse_loss_nd', 'log_rmse_loss_nd', 'softmax_rmse_loss_nd',
+    'evaluate_rmse_loss_nd', 'evaluate_log_rmse_loss_nd', 'evaluate_softmax_rmse_loss_nd'
+]
 logger = logging.getLogger(__name__)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -34,54 +37,65 @@ class Accumulator:
 
 
 class EarlyStopping:
-    """Early stops the training if validation loss doesn't improve after a given patience."""
+    """ Early stops the training if validation loss doesn't improve after a given patience. """
 
-    def __init__(self, patience=7, verbose=False, delta=0, path='checkpoint.pt', trace_func=print):
+    def __init__(
+        self,
+        path: str = 'checkpoint.pt',
+        mode: str = 'min',
+        patience: int = 10,
+        verbose: bool = False
+    ):
         """
         Args:
-            patience (int): How long to wait after last time validation loss improved.
-                            Default: 7
-            verbose (bool): If True, prints a message for each validation loss improvement.
-                            Default: False
-            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
-                            Default: 0
             path (str): Path for the checkpoint to be saved to.
-                            Default: 'checkpoint.pt'
-            trace_func (function): trace print function.
-                            Default: print
+                        Default: 'checkpoint.pt'
+            mode (str): One of 'min' or 'max'. In 'min' mode, training will stop when the quantity monitored has 
+                        stopped decreasing; in 'max' mode it will stop when the quantity monitored has stopped increasing.
+                        Default: 'min'       
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 10
+            verbose (bool): If True, prints a message for each validation loss improvement. 
+                            Default: False
         """
+        self.path = path
+        self.mode = mode
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
+        self.epochs = 0
         self.best_score = None
         self.early_stop = False
         self.val_loss_min = torch.inf
-        self.delta = delta
-        self.path = path
-        self.trace_func = trace_func
+        self.val_loss_max = -torch.inf
 
-    def __call__(self, val_loss, model):
-        score = -val_loss
+    def step(self, net: nn.Module, score: float):
+        self.epochs += 1
+        current = -score if self.mode == 'min' else score
         if self.best_score is None:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
-        elif score < self.best_score + self.delta:
+            self.best_score = current
+            self.save_checkpoint(net, score)
+        elif current <= self.best_score:
             self.counter += 1
-            self.trace_func(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
+            self.best_score = current
+            self.save_checkpoint(net, score)
             self.counter = 0
 
-    def save_checkpoint(self, val_loss, model):
+    def save_checkpoint(self, net: nn.Module, score: float):
         """ Saves model when validation loss decrease. """
-        if self.verbose:
-            self.trace_func(
-                f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
-        torch.save(model.state_dict(), self.path)
-        self.val_loss_min = val_loss
+        if self.mode == 'min':
+            if self.verbose:
+                print(f'Validation loss decreased ({self.val_loss_min:.4f} --> {score:.4f}). Saving model...')
+            self.val_loss_min = score
+        if self.mode == 'max':
+            if self.verbose:
+                print(f'Validation accuracy increased ({self.val_loss_max:.4f} --> {score:.4f}). Saving model...')
+            self.val_loss_max = score
+        torch.save(net.state_dict(), self.path)
 
 
 def is_matrix(X: Tensor) -> bool:
@@ -202,19 +216,19 @@ def simple_classifier_train_1d(
         optimizer: optim.Optimizer,
         loss: nn.Module,
         train: data.DataLoader,
-        validate: data.DataLoader = None,
-        test: data.DataLoader = None,
+        validate: Optional[data.DataLoader] = None,
+        test: Optional[data.DataLoader] = None,
         epochs: int = 10,
-        verbose: bool = 1
+        verbose: bool = True
 ):
     metrics = Accumulator(3)  # train_loss, train_accuracy, num_examples
     train_loss, train_accuracy, val_accuracy = [], [], []
     for epoch in range(epochs):
         net.train()
         metrics.reset()
-        for *X, y in train:
+        for X, y in train:
             optimizer.zero_grad()
-            l = loss(net(*X), y)
+            l = loss(net(X), y)
             l.backward()
             optimizer.step()
             metrics.add(float(l), accuracy_1d(net(X), y), y.shape[0])
@@ -234,9 +248,9 @@ def simple_classifier_train_1d(
 
 
 def simple_accuracy_plot(
-        train_loss: list[float],
-        train_accuracy: list[float],
-        validate_accuracy: list[float] = None,
+        train_loss: List[float],
+        train_accuracy: List[float],
+        validate_accuracy: Optional[List[float]] = None,
         epochs: int = 10
 ):
     import matplotlib.pyplot as plt

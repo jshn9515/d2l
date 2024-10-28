@@ -7,14 +7,7 @@ import d2l.nn.functional as d2l
 __all__ = ['Identity', 'Linear']
 
 
-class Identity(nn.Module):
-    """ A placeholder identity operator that is argument-insensitive. """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def forward(self, X: Tensor) -> Tensor:
-        return X
-
+Identity = nn.Identity
 
 class Linear(nn.Module):
     def __init__(self, in_features: int, out_features: int, bias: bool = True, fast: bool = False):
