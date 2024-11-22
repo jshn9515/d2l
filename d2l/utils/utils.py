@@ -7,12 +7,14 @@ import torch.nn.functional as F
 import torch.utils.data as data
 from typing import List, Optional, Callable
 
+
 __all__ = [
     'Accumulator', 'EarlyStopping',
     'accuracy_1d', 'evaluate_accuracy_1d', 'accuracy_2d', 'evaluate_accuracy_2d',
     'rmse_loss_nd', 'log_rmse_loss_nd', 'softmax_rmse_loss_nd',
     'evaluate_rmse_loss_nd', 'evaluate_log_rmse_loss_nd', 'evaluate_softmax_rmse_loss_nd'
 ]
+
 logger = logging.getLogger(__name__)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -40,11 +42,11 @@ class EarlyStopping:
     """ Early stops the training if validation loss doesn't improve after a given patience. """
 
     def __init__(
-        self,
-        path: str = 'checkpoint.pt',
-        mode: str = 'min',
-        patience: int = 10,
-        verbose: bool = False
+            self,
+            path: str = 'checkpoint.pt',
+            mode: str = 'min',
+            patience: int = 10,
+            verbose: bool = False
     ):
         """
         Args:

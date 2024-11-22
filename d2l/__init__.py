@@ -5,7 +5,6 @@ import d2l.optim as optim
 import d2l.utils as utils
 from packaging import version
 
-__all__ = ['get_project_rootpath', 'get_project_dataset_path']
 
 __author__ = 'jshn9515@163.com'
 __version__ = '0.1.5'
