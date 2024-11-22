@@ -1,6 +1,7 @@
 import setuptools
 from d2l import __version__
 
+
 setuptools.setup(
     name='d2l',
     version=__version__,
@@ -8,5 +9,5 @@ setuptools.setup(
     author='jshn9515',
     author_email='jshn9515@163.com',
     packages=setuptools.find_packages(),
-    requires=['numpy', 'matplotlib', 'torch'],
+    install_requires=['numpy', 'matplotlib', 'torch'],
 )
